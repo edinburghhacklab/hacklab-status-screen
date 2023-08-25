@@ -1,0 +1,2 @@
+BROWSER_WINDOW=$(xdotool search --class '^chromium-browser$')
+# on middle click, pause autoscroll

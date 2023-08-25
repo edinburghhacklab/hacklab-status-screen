@@ -1,0 +1,20 @@
+<style> body { background-color: black; overflow: hidden; } </style>
+<img src="file:///home/pi/bus-timetables/under-construction/dancing-baby-right.gif" height=550><br/>
+<img src="file:///home/pi/bus-timetables/under-construction/under-construction.gif" width=700><br/>
+<img src="file:///home/pi/bus-timetables/under-construction/dancing-baby-left.gif" height=550>
+<script>
+let rotation = 0;
+window.onload = () => {
+  console.log("ready!");
+  document.body.addEventListener("mousewheel", function (ev) {
+    rotation += ev.deltaY > 0 ? 1 : -1;
+    rotation = ((rotation % 360) + 360) % 360;
+    document.body.style.transform = `rotate(${rotation}deg)`;
+  });
+  setInterval(function () {
+    rotation += Math.abs(rotation) < 1 ? 0 : rotation > 180 ? 0.01 : -0.01;
+    rotation = ((rotation % 360) + 360) % 360;
+    document.body.style.transform = `rotate(${rotation}deg)`;
+  }, 100);
+}
+</script>

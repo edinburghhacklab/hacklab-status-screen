@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+sleep 5
+while sleep 20; do /home/pi/tab-right; done
+
+# DOESNT WORK FOR SOME REASON LOL
+#touch lasttabmove
+#while sleep 0.5; do
+#  LAST=$(date -d "$(stat lasttabmove | grep Change: | cut -d' ' -f2-)" +%s)
+#  if [[ "$((LAST + 5000))" -gt "$(date +%s)" ]]; then
+#    /home/pi/tab-right
+#  fi
+#done

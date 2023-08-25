@@ -1,0 +1,231 @@
+<html>
+  <head>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<style>
+* {
+  font-size: 20px;
+  line-height: 1.25;
+}
+body {
+  padding: 0;
+  margin: 0;
+  color: ghostwhite;
+  font-weight: bold;
+  background-color: #222;
+}
+.main {
+  height: 100vh;
+  width: 100vw;
+  box-sizing: border-box;
+  border: 3px solid red;
+  display: flex;
+  flex-direction: column;
+}
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+.stopTitle {
+  font-weight: bold;
+}
+.stopTitle, .lastUpdated {
+  padding-top: 1ch;
+}
+.lastUpdated {
+  font-size: 18px;
+}
+.notUpToDate {
+  color: red;
+}
+.serviceName {
+  text-align: center;
+  width: 5ch;
+}
+.destinationName {
+  padding-right: 4ch;
+}
+</style>
+<script>
+let serviceColors = {};
+let stops = [
+];
+
+const app = Vue.createApp({
+  data () {
+    return {
+      stops: [
+        {
+          id: 6200240020,
+          name: "Bernard Terrace, NW",
+          services: [],
+          lastUpdated: 0,
+        },
+        {
+          id: 6200208550,
+          name: "Bernard Terrace, SE (1)",
+          services: [],
+          lastUpdated: 0,
+        },
+        {
+          id: 6200208580,
+          name: "Bernard Terrace, SE (2)",
+          services: [],
+          lastUpdated: 0,
+        },
+        {
+          id: 6200243440,
+          name: "Buccleuch Terrace, NW",
+          services: [],
+          lastUpdated: 0,
+        },
+        {
+          id: 6200206460,
+          name: "Buccleuch Terrace, SE",
+          services: [],
+          lastUpdated: 0,
+        },
+      ],
+      stopIndices: {
+        6200240020: 0,
+        6200208550: 1,
+        6200208580: 2,
+        6200243440: 3,
+        6200206460: 4,
+      },
+      time: "",
+      timestamp: 0,
+    };
+  },
+
+  methods: {
+    setStop (id, data) {
+      this.stops[this.stopIndices[id]].services = data;
+      this.stops[this.stopIndices[id]].lastUpdated = Date.now();
+    },
+
+    setTime (timestamp, timeString) {
+      this.time = timeString;
+      this.timestamp = timestamp;
+    }
+  }
+});
+
+async function updateAllFromAPI() {
+  for (let stop of mounted.stops) {
+    loadStop(stop.id).then(data => {
+      if (data != null) mounted.setStop(stop.id, data)
+    });
+  }
+}
+
+async function loadColors () {
+  let res = await fetch(`/api/colors`);
+  let json = await res.json();
+  for (let route of json.routes) {
+    serviceColors[route.name] = {
+      bg: route.color,
+      fg: route.textColor,
+    };
+  }
+}
+
+async function loadStop (stop) {
+  let res;
+  try {
+    res = await fetch(`/api/stop/${stop}`);
+  } catch (e) {
+    return null;
+  }
+  let json = await res.json();
+
+  if (res.status != 200) return null;
+
+  let services = {};
+
+  function mkService(service, destination) {
+    if (services[service] == null) {
+      services[service] = {
+        name: service,
+        destinations: {},
+        ...serviceColors[service]
+      };
+    }
+
+    if (services[service].destinations[destination] == null) {
+      services[service].destinations[destination] = {
+        name: destination,
+        times: []
+      };
+    }
+
+    return services[service].destinations[destination].times;
+  }
+
+  for (let service of json.services) {
+    for (let departure of service.departures) {
+      let busList = mkService(service.service_name, departure.destination);
+      let departureString = "ERR";
+      if (departure.minutes > 60) {
+        let departureTime = new Date(Date.now() + departure.minutes * 60 * 1000);
+        departureString = departureTime.toLocaleTimeString().slice(0, -3)
+      } else if (departure.minutes > 0) {
+        departureString = departure.minutes.toString() + "m";
+      } else {
+        departureString = "DUE";
+      }
+      busList.push(departureString);
+    }
+  }
+
+  return services;
+}
+
+window.onload = async () => {
+  setInterval(() => {
+    let timestamp = Date.now();
+    let dateString = (new Date()).toLocaleString();
+    mounted.setTime(timestamp, dateString);
+  }, 100);
+
+  await loadColors();
+  await updateAllFromAPI(stops);
+  setInterval(() => {
+    updateAllFromAPI(stops);
+  }, 60000);
+}
+</script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="header">
+        <span id="time">{{time}}</span>
+      </div>
+      <div class="busLists">
+        <table class="services">
+          <template v-for="stop in stops">
+            <tr>
+              <td class="stopTitle" colspan="2">{{ stop.name }}</td>
+              <td class="lastUpdated" colspan="1" :class="{ notUpToDate: (timestamp - stop.lastUpdated) > 70000 }">
+                (Last updated {{ Math.floor((timestamp - stop.lastUpdated) / 60000) }}m ago)
+              </td>
+            </tr>
+            <template v-for="service of stop.services">
+              <template v-for="destination of service.destinations">
+                <tr>
+                  <td class="serviceName" :style="{ backgroundColor: service.bg, color: service.fg }">{{ service.name }}</td>
+                  <td class="destinationName">{{ destination.name }}</td>
+                  <td class="destinationTimes" :class="{ notUpToDate: (timestamp - stop.lastUpdated) > 70000 }">{{ destination.times.join(', ') }}</td>
+                </tr>
+              </template>
+            </template>
+          </template>
+        </table>
+      </div>
+    </div>
+    <script>
+const mounted = app.mount('#app');
+    </script>
+  </body>
+</html>
