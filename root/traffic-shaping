@@ -1,0 +1,17 @@
+#!/bin/bash
+modprobe ifb
+
+function tc() {
+	echo tc "$@"
+	/usr/sbin/tc "$@"
+}
+
+tc qdisc del dev ifb0 root
+tc qdisc del dev wlan0 ingress
+
+# 5 mbit incoming limit
+tc qdisc add dev ifb0 root handle 1: cake bandwidth 5mbit besteffort wash ingress
+
+tc qdisc add dev wlan0 ingress handle ffff:
+# rate limit incoming voron bandwidth
+tc filter add dev wlan0 parent ffff: protocol ip handle ::1 u32 match ip src 10.38.40.219 action mirred egress redirect dev ifb0
