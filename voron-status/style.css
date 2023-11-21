@@ -1,0 +1,34 @@
+/* * {
+    background-color: "1d1d1f";
+} */
+
+/*
+#app {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+}
+
+.camera-container {
+    width: fit-content;
+    height: fit-content;
+
+    margin: auto;
+    border-radius: 10px;
+}
+
+    border-radius: 10px;
+*/
+
+div { display: inline; }
+
+.camera-container img {
+    transform: rotate(90deg);
+    display: block;
+    position: fixed;
+    top: 290px;
+    left: -300px;
+    width: 1360px;
+    height: 768px;
+}
+

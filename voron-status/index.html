@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+<!--
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-->
+    <title>Voron Mini-Status</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+
+<!--
+    <link rel="stylesheet" href="index-812fac0d.css">
+-->
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+    <div id="app" class="v-application fluidd v-application--is-ltr theme--dark">
+        <div data-v-04dce43b="" class="camera-container v-sheet theme--dark elevation-0">
+            <img id="stream" data-v-04dce43b="" src="http://voron24.hacklab/webcam/?action=stream" class="camera-image">
+            <!-- <iframe class="camera-image" data-v-04dce43b="" src="http://voron24.hacklab/webcam/?action=stream"></iframe> -->
+<!--
+            <div data-v-04dce43b="" class="camera-name"> Voron Camera </div>
+            <div data-v-04dce43b="" class="camera-fullscreen">
+-->
+            </div>
+        </div>
+    </div>
+    <!-- <iframe class src="http://voron24.hacklab/webcam/?action=stream&cacheBust=1692988775528"></iframe> -->
+
+
+    <!-- https://stackoverflow.com/a/70672203 -->
+    <script>
+      let image = document.getElementById('stream');
+
+      async function check() {
+        while (true) {
+          try {
+            await image.decode();
+          } catch {
+            let src = image.src;
+            image.src = "";
+            image.src = src;
+          }
+      
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+      }
+      
+      check();
+    </script>
+
+</body>
+
+</html>

@@ -27,7 +27,7 @@ the impression of cycling through screens, which are actually just webpages.
 This way, each screen is a webpage on a tab in chrome - the system is built to
 make this not too obvious.
 
-## Step by Step
+## Step by step
 
 At startup, the X server is run with xinit. This runs the commands in .xinitrc
 from our home directory when the X server is done initializing. Because we
@@ -61,18 +61,7 @@ written code and inputs) in order to access the filesystem easily.
 The chrome browser is handed a list of URLs (these can be localhost, or file
 urls, or anything else that it can open). Each URL will open in a separate tab,
 which will act as a "screen" that we can flick through with right or left
-clicking. Currently, chrome is pointed at the bus timetable server on
-localhost:5000 and the under construction page in ./under-construction
-
-## The Bus Timetable Webpage
-
-The bus timetable webpage itself is served from localhost:5000 by
-timetable-server-proxy. It consists of two parts:
-
-- A Flask webserver, in proxy.py, which serves the index.html webpage and
-  proxies the TfE API
-- A webpage, index.html, which requests the TfE API via the proxy, and renders
-  it into a template using VueJS
+clicking.
 
 # Development
 

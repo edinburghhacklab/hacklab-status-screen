@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+import os
+import time
+
+filename = os.environ["XDG_RUNTIME_DIR"] + "/lasttabmove"
+if not os.path.exists(filename):
+	with open(filename, "w") as f:
+		pass
+
+now = int(time.time())
+last = int(os.stat(filename).st_mtime)
+
+if last > now:
+	print("unpause")
+	os.system(os.path.dirname(__file__) + "/tab-right")
+else:
+	print("pause")
+	os.utime(filename, (0, int(time.time()) + 900))
