@@ -3,7 +3,8 @@ After=network.target
 
 [Service]
 ExecStart=/usr/bin/xinit -- -nocursor
-Restart=on-failure
+Restart=always
+RestartSec=120
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
