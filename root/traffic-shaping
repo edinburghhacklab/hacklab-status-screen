@@ -14,7 +14,7 @@ tc qdisc add dev ifb0 root handle 1: cake bandwidth 5mbit besteffort wash ingres
 
 tc qdisc add dev wlan0 ingress handle ffff:
 # rate limit incoming voron bandwidth
-#tc filter add dev wlan0 parent ffff: protocol ip handle ::1 u32 match ip src 10.38.40.219 action mirred egress redirect dev ifb0
+tc filter add dev wlan0 parent ffff: protocol ip handle ::1 u32 match ip src 10.38.40.24 action mirred egress redirect dev ifb0
 tc filter add dev wlan0 parent ffff: protocol ip handle ::1 u32 \
 	match u32 0xb827eb57 0xffffffff at -8 \
 	match u16 0x2b19 0xffff at -4 \
