@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>XKCD Status</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        img {
+            -webkit-filter: invert(1);
+            filter: invert(1);
+
+            width: fit-content;
+            margin: auto;
+            display: block;
+        }
+
+        * {
+            background-color: black;
+            color: white;
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body onload="setup_callback()">
+    <h1 id="title"></h1>
+    <img id="image">
+    <h5 id="alt"></h5>
+    <h5 id="date"></h5>
+</body>
+
+<script>
+    image = document.getElementById("image");
+    title = document.getElementById("title");
+    alt = document.getElementById("alt");
+    date = document.getElementById("date");
+
+    async function update() {
+        console.log("update")
+
+        const obj = await fetch("http://localhost:8080/api");
+        const json = await obj.json();
+        image.src = json.img;
+        title.textContent = json.safe_title
+        alt.textContent = json.alt
+        date.textContent = `${json.day}/${json.month}/${json.year}`
+    }
+
+    function setup_callback() {
+        update();
+        setInterval(update, 1000 * 60 * 60 * 2); // Update every 2 hours
+    }
+</script>
+
+</html>
