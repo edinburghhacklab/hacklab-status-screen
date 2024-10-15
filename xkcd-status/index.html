@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html id="root">
 
 <head>
     <meta charset='utf-8'>
@@ -7,18 +7,28 @@
     <title>XKCD Status</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <style>
-        img {
+        .dark img {
             -webkit-filter: invert(1);
             filter: invert(1);
+        }
 
+        img {
             width: fit-content;
             margin: auto;
             display: block;
         }
 
-        * {
+        .dark, .dark * {
             background-color: black;
             color: white;
+        }
+
+        .light, .light * {
+            background-color: white;
+            color: black;
+        }
+
+        * {
             font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
             text-align: center;
         }
@@ -26,22 +36,27 @@
 </head>
 
 <body onload="setup_callback()">
-    <h1 id="title"></h1>
-    <img id="image">
-    <h5 id="alt"></h5>
-    <h5 id="date"></h5>
+    <div>
+        <h1 id="title"></h1>
+        <img id="image">
+        <h5 id="alt"></h5>
+        <h5 id="date"></h5>
+    </div>
 </body>
 
 <script>
+    root = document.getElementById("root");
     image = document.getElementById("image");
     title = document.getElementById("title");
     alt = document.getElementById("alt");
     date = document.getElementById("date");
 
+    root.setAttribute("class", location.search.substr(1));
+
     async function update() {
         console.log("update")
 
-        const obj = await fetch("http://localhost:8080/api");
+        const obj = await fetch("http://localhost:2578/api");
         const json = await obj.json();
         image.src = json.img;
         title.textContent = json.safe_title
@@ -51,7 +66,7 @@
 
     function setup_callback() {
         update();
-        setInterval(update, 1000 * 60 * 60 * 2); // Update every 2 hours
+        setInterval(update, 1000 * 60 * 60 * 12);
     }
 </script>
 
