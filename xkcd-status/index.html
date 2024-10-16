@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html id="root">
+<html id="dark">
 
 <head>
     <meta charset='utf-8'>
@@ -7,25 +7,25 @@
     <title>XKCD Status</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <style>
-        .dark img {
-            -webkit-filter: invert(1);
-            filter: invert(1);
-        }
-
         img {
             width: fit-content;
             margin: auto;
             display: block;
         }
 
-        .dark, .dark * {
-            background-color: black;
-            color: white;
+        html:target img {
+            -webkit-filter: invert(1);
+            filter: invert(1);
         }
 
-        .light, .light * {
+        html, html * {
             background-color: white;
             color: black;
+        }
+
+        html:target, html:target * {
+            background-color: black;
+            color: white;
         }
 
         * {
@@ -50,8 +50,6 @@
     title = document.getElementById("title");
     alt = document.getElementById("alt");
     date = document.getElementById("date");
-
-    root.setAttribute("class", location.search.substr(1));
 
     async function update() {
         console.log("update")

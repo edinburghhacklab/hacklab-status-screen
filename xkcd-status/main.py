@@ -7,7 +7,7 @@ serverPort = 2578
 
 class WebServer(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path in ("/", "/?light", "/?dark"):
+        if self.path in "/":
             site: str
             with open("index.html") as f:
                 site = f.read()

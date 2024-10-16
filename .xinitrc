@@ -16,10 +16,10 @@ fi
 
 /usr/bin/chromium-browser $KIOSK_FLAG --disable-web-security --temp-profile \
     http://localhost:5000 \
-    http://localhost:2578/\?light \
+    http://localhost:2578/\#light \
     file:///home/pi/bus-timetables/voron-status/index.html \
     http://trains.hacklab \
-    http://localhost:2578/\?dark \
+    http://localhost:2578/\#dark \
     http://carbon.hacklab:8448
 #   file:///home/pi/tab3.html
 #   file:///home/pi/voron-status/index.html
