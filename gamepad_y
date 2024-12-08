@@ -1,0 +1,7 @@
+#/usr/bin/bash
+
+# Press Y
+BROWSER_WINDOW=$(xdotool search --class '^chromium-browser$')
+xdotool key --window $BROWSER_WINDOW y
+touch "$XDG_RUNTIME_DIR/lasttabmove"
+
