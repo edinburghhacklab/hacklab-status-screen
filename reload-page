@@ -1,4 +1,4 @@
 # reload the current page
 BROWSER_WINDOW=$(xdotool search --class '^chromium-browser$')
 xdotool key --window $BROWSER_WINDOW ctrl+r
-touch "$XDG_RUNTIME_DIR/lasttabmove"
+./stay-here-longer

@@ -11,8 +11,8 @@ now = time.time()
 last = os.stat(filename).st_mtime
 
 if last > now:
-	print("unpause")
-	os.system(os.path.dirname(__file__) + "/tab-right")
-else:
-	print("pause")
+	print("paused")
 	os.utime(filename, (0, now + 900))
+else:
+	print("not paused")
+	os.utime(filename, (0, now))
