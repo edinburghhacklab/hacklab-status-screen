@@ -14,7 +14,7 @@ fi
 # Start xkcd webserver
 (cd /home/pi/bus-timetables/xkcd-status; python3 main.py) &
 
-(cd /home/pi/hacklab-timers/hacklab-timers-main; node index.js) &
+(. /home/pi/.bashrc; cd /home/pi/hacklab-timers/hacklab-timers-main; node index.js) &
 
 /usr/bin/chromium-browser $KIOSK_FLAG --disable-web-security --temp-profile \
     http://localhost:5000 \
