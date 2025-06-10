@@ -1,4 +1,4 @@
 # move left one tab
-BROWSER_WINDOW=$(xdotool search --class '^chromium-browser$')
+BROWSER_WINDOW=$(xdotool search --onlyvisible --class '^chromium-browser$')
 xdotool key --window $BROWSER_WINDOW Down
 ./stay-here-longer

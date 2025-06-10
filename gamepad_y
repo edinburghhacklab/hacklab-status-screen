@@ -1,7 +1,7 @@
 #/usr/bin/bash
 
 # Press Y
-BROWSER_WINDOW=$(xdotool search --class '^chromium-browser$')
+BROWSER_WINDOW=$(xdotool search --onlyvisible --class '^chromium-browser$')
 xdotool key --window $BROWSER_WINDOW y
 ./stay-here-longer
 
