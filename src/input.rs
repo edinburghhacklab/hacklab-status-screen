@@ -132,14 +132,14 @@ impl Input {
 				"tabs",
 				config
 					.keyboard_device("tabs")
-					.map(|path| PathBuf::from(path)),
+					.map(PathBuf::from),
 				Handlers::from(Tabs::new(browser.clone(), config.clone(), run)),
 			),
 			timers: Device::new_optional(
 				"timers",
 				config
 					.keyboard_device("timers")
-					.map(|path| PathBuf::from(path)),
+					.map(PathBuf::from),
 				Handlers::from(Timers::new(browser, config, time_since_last.clone())),
 			),
 		})
