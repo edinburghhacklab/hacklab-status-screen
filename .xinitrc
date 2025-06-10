@@ -14,12 +14,13 @@ fi
 # Start xkcd webserver
 (cd /home/pi/bus-timetables/xkcd-status; python3 main.py) &
 
-(. /home/pi/.bashrc; cd /home/pi/hacklab-timers/hacklab-timers-main; node index.js) &
+(. /home/pi/.bashrc; cd /home/pi/hacklab-timers/hacklab-timers-main; /home/pi/.nvm/versions/node/v22.14.0/bin/node index.js ../timers ../logs >diagnostics 2>&1) &
 
 /usr/bin/chromium-browser $KIOSK_FLAG --disable-web-security --temp-profile \
     http://localhost:5000 \
     http://localhost:2578/\#light \
     http://voron24.hacklab:5000/ \
+    http://carbon.hacklab:8448/printers \
     http://trains.hacklab \
     http://localhost:2578/\#dark \
     http://carbon.hacklab:8448/map \
