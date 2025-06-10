@@ -1,4 +1,0 @@
-# reload the current page
-BROWSER_WINDOW=$(xdotool search --onlyvisible --class '^chromium-browser$')
-xdotool key --window $BROWSER_WINDOW ctrl+r
-./stay-here-longer

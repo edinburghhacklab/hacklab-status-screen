@@ -1,4 +1,0 @@
-# move right one tab
-BROWSER_WINDOW=$(xdotool search --onlyvisible --class '^chromium-browser$')
-xdotool key --window $BROWSER_WINDOW ctrl+Tab
-touch "$XDG_RUNTIME_DIR/lasttabmove"
