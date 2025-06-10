@@ -11,7 +11,7 @@ def index():
 
 @app.route('/api/stop/<int:stop_id>')
 def proxy_stop(stop_id):
-    res = requests.get(f"https://tfeapp.com/api/website/stop_times.php?stop_id={stop_id}")
+    res = requests.get(f"https://lothianapi.co.uk/departureBoards/website?stops={stop_id}")
     return res.json()
 
 @app.route('/api/colors')
