@@ -1,0 +1,57 @@
+# ----- Fixed config -----
+[keyboards]
+main = "/dev/input/by-id/usb-0810_usb_gamepad-event-joystick"
+tabs = "/dev/input/by-id/usb-uuid.uk_rpi_pico_25x1_keyboard_E66368254F206F350000000000000000-if01-event-joystick"
+timers = "/dev/input/by-id/usb-uuid.uk_rpi_pico_25x1_keyboard_E66368254F0948360000000000000000-if01-event-joystick"
+
+[urls]
+buses = "http://localhost:5000"
+xkcd_light = "http://localhost:2578/#light"
+voron = "http://voron24.hacklab:5000/"
+3d_printers = "http://carbon.hacklab:8448/printers"
+trains = "http://trains.hacklab"
+xkcd_dark = "http://localhost:2578/#dark"
+map = "http://carbon.hacklab:8448/map"
+timers = "http://localhost:3456"
+
+[mqtt]
+hostname = "mqtt.hacklab"
+
+# ----- Dynamic config reloads every 60 seconds -----
+[main]
+konami = "./life.sh"
+
+[autoscroll]
+delay = 20
+pause = 900
+
+[tabs]
+0 = "buses"
+1 = "trains"
+3 = "map"
+4 = "timers"
+
+5 = "3d_printers"
+6 = "voron"
+
+15 = "xkcd_light"
+16 = "xkcd_dark"
+
+24 = "!./life.sh"
+
+[timers]
+0 = "Nix Mentioned"
+1 = "Rust mention"
+
+5 = "Nerd snipe"
+6 = "Force-fem"
+7 = "Timer? I hardly knew 'er!"
+8 = "Square Hole"
+
+10 = "awoooo!"
+11 = "bark"
+12 = "meow"
+
+20 = "Bikeshedding"
+23 = "Plants watered"
+24 = "Is this loss?"

@@ -1,0 +1,18 @@
+[package]
+name = "hacklab-status-screen"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+clap = { version = "4.5.27", features = ["cargo", "derive", "help", "string", "wrap_help"] }
+config = { version = "0.15.11", features = ["preserve_order"] }
+derive_more = { version = "2.0.1", features = ["debug"] }
+enum_dispatch = "0.3.13"
+evdev = "0.13.1"
+indexmap = { version = "2.9.0", features = ["serde"] }
+log = "0.4.25"
+rumqttc = "0.24.0"
+stderrlog = "0.6.0"
+strum = { version = "0.27.1", features = ["derive"] }
+strum_macros = "0.27.1"
