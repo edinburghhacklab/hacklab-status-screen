@@ -77,7 +77,7 @@ struct Navigation {
 struct Tabs {
 	browser: Arc<Browser>,
 	config: Arc<Config>,
-	run: Arc<Mutex<()>>,
+	run: Arc<Mutex<Arc<Browser>>>,
 }
 
 #[derive(Debug)]
@@ -91,15 +91,19 @@ struct Timers {
 struct Konami {
 	config: Arc<Config>,
 	history: Mutex<VecDeque<char>>,
-	run: Arc<Mutex<()>>,
+	run: Arc<Mutex<Arc<Browser>>>,
 }
 
-fn execute(run: Arc<Mutex<()>>, command: &str) {
+fn execute(run: Arc<Mutex<Arc<Browser>>>, command: &str) {
 	let command = command.to_owned();
+
+	run.lock().unwrap().user_activity();
 
 	thread::spawn(move || {
 		/* Don't run multiple commands concurrently */
-		let _lock = run.lock().unwrap();
+		let run = run.lock().unwrap();
+
+		run.user_activity();
 
 		info!("Execute: {command}");
 
@@ -116,7 +120,7 @@ impl Input {
 		browser: Arc<Browser>,
 		time_since_last: Arc<TimeSinceLast>,
 	) -> Result<Self, Error> {
-		let run = Arc::new(Mutex::new(()));
+		let run = Arc::new(Mutex::new(browser.clone()));
 
 		Ok(Self {
 			main: Device::new(
@@ -130,16 +134,12 @@ impl Input {
 			),
 			tabs: Device::new_optional(
 				"tabs",
-				config
-					.keyboard_device("tabs")
-					.map(PathBuf::from),
+				config.keyboard_device("tabs").map(PathBuf::from),
 				Handlers::from(Tabs::new(browser.clone(), config.clone(), run)),
 			),
 			timers: Device::new_optional(
 				"timers",
-				config
-					.keyboard_device("timers")
-					.map(PathBuf::from),
+				config.keyboard_device("timers").map(PathBuf::from),
 				Handlers::from(Timers::new(browser, config, time_since_last.clone())),
 			),
 		})
@@ -272,7 +272,7 @@ impl fmt::Debug for Handlers {
 impl Konami {
 	const KONAMI_CODE: &str = "UUDDLRLRBAS";
 
-	pub fn new(config: Arc<Config>, run: Arc<Mutex<()>>) -> Self {
+	pub fn new(config: Arc<Config>, run: Arc<Mutex<Arc<Browser>>>) -> Self {
 		Self {
 			config,
 			history: Mutex::new(VecDeque::new()),
@@ -317,7 +317,7 @@ impl Konami {
 }
 
 impl Navigation {
-	fn new(browser: Arc<Browser>, config: Arc<Config>, run: Arc<Mutex<()>>) -> Self {
+	fn new(browser: Arc<Browser>, config: Arc<Config>, run: Arc<Mutex<Arc<Browser>>>) -> Self {
 		Self {
 			browser,
 			konami: Konami::new(config, run),
@@ -369,7 +369,7 @@ impl Handler for Navigation {
 }
 
 impl Tabs {
-	fn new(browser: Arc<Browser>, config: Arc<Config>, run: Arc<Mutex<()>>) -> Self {
+	fn new(browser: Arc<Browser>, config: Arc<Config>, run: Arc<Mutex<Arc<Browser>>>) -> Self {
 		Self {
 			browser,
 			config: config.clone(),

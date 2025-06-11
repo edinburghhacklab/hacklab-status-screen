@@ -98,6 +98,12 @@ impl Browser {
 		child.wait().expect("Browser stopped");
 	}
 
+	pub fn user_activity(&self) {
+		let mut state = self.state.lock().unwrap();
+		debug!("User activity");
+		self.activity(&mut state);
+	}
+
 	fn activity(&self, state: &mut MutexGuard<BrowserState>) {
 		state.changed = Instant::now();
 		self.sleep.notify_all();
