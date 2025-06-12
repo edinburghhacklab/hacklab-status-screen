@@ -338,6 +338,10 @@ impl TimeSinceLast {
 				thread::spawn(move || {
 					for notification in connection.iter() {
 						trace!("MQTT received: {notification:?}");
+
+						if notification.is_err() {
+							thread::sleep(Duration::from_secs(1));
+						}
 					}
 				});
 
