@@ -95,7 +95,8 @@ impl Browser {
 				self_copy.autoscroll();
 			});
 		}
-		child.wait().expect("Browser stopped");
+		child.wait().expect("Browser failed to run");
+		error!("Browser stopped");
 	}
 
 	pub fn user_activity(&self) {
