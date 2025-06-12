@@ -37,6 +37,14 @@ pub struct CommandLineArgs {
 	#[arg(short, long = "kiosk")]
 	pub kiosk: bool,
 
+	/// Use xdotool instead of libxdo
+	#[arg(short, long = "xdotool")]
+	pub xdotool: bool,
+
+	/// Send keys to the current window without searching
+	#[arg(short, long)]
+	pub no_search: bool,
+
 	/// Debug logging
 	#[arg(short, long, action = clap::ArgAction::Count)]
 	pub verbose: u8,

@@ -11,6 +11,7 @@ derive_more = { version = "2.0.1", features = ["debug"] }
 enum_dispatch = "0.3.13"
 evdev = "0.13.1"
 indexmap = { version = "2.9.0", features = ["serde"] }
+libxdo = { version = "0.6.0-sa2", git = "https://github.com/nomis/rust-libxdo", rev = "v0.6.0-sa2" }
 log = "0.4.25"
 rumqttc = "0.24.0"
 stderrlog = "0.6.0"

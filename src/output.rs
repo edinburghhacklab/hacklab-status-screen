@@ -24,6 +24,8 @@ use std::{
 	time::{Duration, Instant},
 };
 
+use anyhow::{Error, anyhow};
+use libxdo::{Search, Window, XDo};
 use log::{debug, error, info, trace, warn};
 use rumqttc::MqttOptions;
 
@@ -37,6 +39,7 @@ pub struct Browser {
 	state: Mutex<BrowserState>,
 	sleep: Condvar,
 	config: Arc<Config>,
+	hands: Mutex<Hands>,
 }
 
 #[derive(Debug)]
@@ -44,6 +47,16 @@ struct BrowserState {
 	tab: usize,
 	changed: Instant,
 	paused: bool,
+}
+
+#[derive(derive_more::Debug)]
+struct Hands {
+	no_search: bool,
+	use_xdotool: bool,
+	script: String,
+	#[debug("XDo")]
+	xdo: XDo,
+	window: Option<Window>,
 }
 
 #[derive(derive_more::Debug)]
@@ -76,6 +89,7 @@ impl Browser {
 			state: Mutex::new(BrowserState::default()),
 			sleep: Condvar::new(),
 			config,
+			hands: Mutex::new(Hands::new(args.xdotool, args.no_search)),
 		})
 	}
 
@@ -186,27 +200,20 @@ impl Browser {
 		}
 	}
 
-	pub fn user_press(&self, key: &str) {
+	pub fn user_press(&self, keys: &str) {
 		let mut state = self.state.lock().unwrap();
 
-		debug!("Press key on browser: {key} (user)");
-		self.press(key);
+		debug!("Press keys on browser: {keys} (user)");
+		self.press(keys);
 		self.activity(&mut state);
 	}
 
-	fn press(&self, key: &str) {
-		trace!("Press key on browser: {key}");
+	fn press(&self, keys: &str) {
+		let mut hands = self.hands.lock().unwrap();
 
-		if let Err(err) = Command::new("sh")
-			.arg("-c")
-			.arg(
-				"xdotool key --window $(xdotool search --onlyvisible --class '^chromium-browser$') "
-					.to_owned() + key,
-			)
-			.output()
-		{
-			error!("Unable to send key {key} to browser: {err}");
-		}
+		trace!("Press keys on browser: {keys}");
+
+		hands.press(keys);
 	}
 
 	pub fn toggle_pause(&self) {
@@ -322,6 +329,85 @@ impl Default for BrowserState {
 			changed: Instant::now(),
 			paused: false,
 		}
+	}
+}
+
+impl Hands {
+	const BROWSER_WINDOW_CLASS_REGEX: &str = "^chromium(-browser)?$";
+
+	pub fn new(use_xdotool: bool, no_search: bool) -> Self {
+		let mut script = "xdotool key ".to_string();
+
+		if !no_search {
+			script += "--window $(xdotool search --onlyvisible --class '";
+			script += Self::BROWSER_WINDOW_CLASS_REGEX;
+			script += "') ";
+		}
+
+		Self {
+			use_xdotool,
+			script,
+			xdo: XDo::new(None).unwrap(),
+			no_search,
+			window: None,
+		}
+	}
+
+	pub fn press(&mut self, keys: &str) {
+		if let Err(err) = if self.use_xdotool {
+			self.press_xdotool(keys)
+		} else {
+			self.press_libxdo(keys)
+		} {
+			error!("Unable to send keys {keys:?} to browser: {err}");
+		}
+	}
+
+	fn press_xdotool(&mut self, keys: &str) -> Result<(), Error> {
+		Command::new("sh")
+			.arg("-c")
+			.arg(self.script.clone() + keys)
+			.output()?;
+		Ok(())
+	}
+
+	fn press_libxdo(&mut self, keys: &str) -> Result<(), Error> {
+		/* xdotool(1): Delay between keystrokes. Default is 12ms. */
+		const DELAY_US: u32 = 12_000;
+
+		let window = if self.no_search {
+			None
+		} else {
+			if self.window.is_none() {
+				self.window = self
+					.xdo
+					.search_windows(Search {
+						only_visible: true,
+						window_class: Some(Self::BROWSER_WINDOW_CLASS_REGEX.to_string()),
+						limit: 1,
+						..Search::default()
+					})
+					.inspect_err(|err| error!("Unable to find browser window: {err}"))
+					.ok()
+					.and_then(|windows| {
+						if windows.is_empty() {
+							error!("No browser windows found");
+						} else if windows.len() > 2 {
+							warn!("Multiple browser windows found: {windows:?}");
+						} else {
+							trace!("Found one browser window: {}", windows[0]);
+						}
+						windows.first().copied()
+					});
+			}
+
+			Some(self.window.ok_or(anyhow!("Browser window not found"))?)
+		};
+
+		self.xdo
+			.send_keysequence(window, keys, DELAY_US)
+			.inspect_err(|_| self.window = None)?;
+		Ok(())
 	}
 }
 
