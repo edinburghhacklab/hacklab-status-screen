@@ -343,7 +343,7 @@ impl Handler for Navigation {
 				4 => self.browser.goto_previous_tab(), /* left bumper */
 				5 => self.browser.goto_next_tab(),     /* right bumper */
 				8 => self.browser.reload_tab(),        /* select */
-				9 => self.browser.toggle_pause(),      /* start */
+				9 => self.browser.pause(),             /* start */
 				_ => {}
 			},
 			None => { /* Ignore button presses when konami code is being entered */ }

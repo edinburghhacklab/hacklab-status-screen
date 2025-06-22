@@ -216,15 +216,12 @@ impl Browser {
 		hands.press(keys);
 	}
 
-	pub fn toggle_pause(&self) {
+	pub fn pause(&self) {
 		let mut state = self.state.lock().unwrap();
 
-		state.paused = !state.paused;
-
-		if state.paused {
+		if !state.paused {
+			state.paused = true;
 			info!("Paused");
-		} else {
-			info!("Unpaused");
 		}
 
 		self.activity(&mut state);
