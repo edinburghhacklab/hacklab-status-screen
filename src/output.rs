@@ -49,6 +49,7 @@ pub struct Browser {
 struct BrowserState {
 	tab: usize,
 	changed: Instant,
+	held: bool,
 	paused: bool,
 	content: Vec<(String, Instant)>,
 }
@@ -143,6 +144,8 @@ impl Browser {
 			let next = state.changed
 				+ if state.paused {
 					self.config.autoscroll_pause()
+				} else if state.held {
+					self.config.autoscroll_hold()
 				} else {
 					self.config.autoscroll_delay() * multiplier
 				};
@@ -175,6 +178,7 @@ impl Browser {
 
 		debug!("Go to previous tab");
 		self.unpause(&mut state);
+		self.hold(&mut state);
 		self.change_tab(&mut state, tab);
 	}
 
@@ -184,6 +188,7 @@ impl Browser {
 
 		debug!("Go to next tab");
 		self.unpause(&mut state);
+		self.hold(&mut state);
 		self.change_tab(&mut state, tab);
 	}
 
@@ -204,6 +209,7 @@ impl Browser {
 
 				if self.change_tab(&mut state, *tab) {
 					self.unpause(&mut state);
+					self.hold(&mut state);
 
 					if sync {
 						thread::sleep(time::Duration::from_millis(100));
@@ -221,6 +227,7 @@ impl Browser {
 
 		debug!("Press keys on browser: {keys} (user)");
 		self.press(keys);
+		self.hold(&mut state);
 		self.activity(&mut state);
 	}
 
@@ -232,10 +239,20 @@ impl Browser {
 		hands.press(keys);
 	}
 
+	fn hold(&self, state: &mut MutexGuard<BrowserState>) {
+		if !state.paused && !state.held {
+			state.held = true;
+			info!("Hold");
+		}
+
+		self.activity(state);
+	}
+
 	pub fn pause(&self) {
 		let mut state = self.state.lock().unwrap();
 
 		if !state.paused {
+			state.held = false;
 			state.paused = true;
 			info!("Paused");
 		}
@@ -244,6 +261,10 @@ impl Browser {
 	}
 
 	fn unpause(&self, state: &mut MutexGuard<BrowserState>) {
+		if state.held {
+			state.held = false;
+		}
+
 		if state.paused {
 			state.paused = false;
 			info!("Automatically unpaused");
@@ -359,6 +380,7 @@ impl Default for BrowserState {
 		Self {
 			tab: Browser::FIRST_TAB,
 			changed: Instant::now(),
+			held: false,
 			paused: false,
 			content: Vec::new(),
 		}

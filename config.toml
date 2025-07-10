@@ -23,6 +23,7 @@ konami = "./life.sh"
 
 [autoscroll]
 delay = 20
+hold = 60
 pause = 900
 
 [tabs]

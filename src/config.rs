@@ -60,6 +60,7 @@ pub struct Config {
 struct State {
 	data: IndexMap<String, Value>,
 	autoscroll_delay: Duration,
+	autoscroll_hold: Duration,
 	autoscroll_pause: Duration,
 }
 
@@ -130,6 +131,12 @@ impl Config {
 		let state = self.state.lock().unwrap();
 
 		state.autoscroll_delay
+	}
+
+	pub fn autoscroll_hold(&self) -> Duration {
+		let state = self.state.lock().unwrap();
+
+		state.autoscroll_hold
 	}
 
 	pub fn autoscroll_pause(&self) -> Duration {
@@ -228,43 +235,35 @@ impl State {
 				.inspect_err(|err| warn!("Invalid autoscroll section in config: {err}"))
 				.ok()
 		});
-		let autoscroll_delay = Duration::from_secs(
-			autoscroll_section
-				.as_ref()
-				.and_then(|table| {
-					table.clone().get("delay").and_then(|value| {
-						value
-							.clone()
-							.into_uint()
-							.inspect_err(|err| {
-								warn!("Invalid autoscroll delay value in config: {err}")
-							})
-							.ok()
-					})
-				})
-				.unwrap_or(20),
-		);
-		let autoscroll_pause = Duration::from_secs(
-			autoscroll_section
-				.as_ref()
-				.and_then(|table| {
-					table.clone().get("pause").and_then(|value| {
-						value
-							.clone()
-							.into_uint()
-							.inspect_err(|err| {
-								warn!("Invalid autoscroll pause value in config: {err}")
-							})
-							.ok()
-					})
-				})
-				.unwrap_or(900),
-		);
 
 		Self {
 			data,
-			autoscroll_delay,
-			autoscroll_pause,
+			autoscroll_delay: Self::autoscroll_config(&autoscroll_section, "delay", 20),
+			autoscroll_hold: Self::autoscroll_config(&autoscroll_section, "hold", 60),
+			autoscroll_pause: Self::autoscroll_config(&autoscroll_section, "pause", 900),
 		}
+	}
+
+	fn autoscroll_config(
+		config: &Option<IndexMap<String, Value>>,
+		name: &str,
+		default_s: u64,
+	) -> Duration {
+		Duration::from_secs(
+			config
+				.as_ref()
+				.and_then(|table| {
+					table.clone().get(name).and_then(|value| {
+						value
+							.clone()
+							.into_uint()
+							.inspect_err(|err| {
+								warn!("Invalid autoscroll {name} value in config: {err}")
+							})
+							.ok()
+					})
+				})
+				.unwrap_or(default_s),
+		)
 	}
 }
