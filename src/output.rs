@@ -28,6 +28,8 @@ use anyhow::{Error, anyhow};
 use libxdo::{Search, Window, XDo};
 use log::{debug, error, info, trace, warn};
 use rumqttc::MqttOptions;
+use sha2::{Digest, Sha256};
+use xcap::Monitor;
 
 use crate::config::{CommandLineArgs, Config};
 
@@ -40,6 +42,7 @@ pub struct Browser {
 	sleep: Condvar,
 	config: Arc<Config>,
 	hands: Mutex<Hands>,
+	eyes: Eyes,
 }
 
 #[derive(Debug)]
@@ -47,6 +50,7 @@ struct BrowserState {
 	tab: usize,
 	changed: Instant,
 	paused: bool,
+	content: Vec<(String, Instant)>,
 }
 
 #[derive(derive_more::Debug)]
@@ -57,6 +61,11 @@ struct Hands {
 	#[debug("XDo")]
 	xdo: XDo,
 	window: Option<Window>,
+}
+
+#[derive(derive_more::Debug)]
+struct Eyes {
+	monitors: Vec<Monitor>,
 }
 
 #[derive(derive_more::Debug)]
@@ -90,6 +99,7 @@ impl Browser {
 			sleep: Condvar::new(),
 			config,
 			hands: Mutex::new(Hands::new(args.xdotool, args.no_search)),
+			eyes: Eyes::default(),
 		})
 	}
 
@@ -150,7 +160,10 @@ impl Browser {
 
 			let tab = self.next_tab_id(&state);
 
-			debug!("Go to next tab");
+			debug!("Go to next tab (autoscroll)");
+			if let Some(duration) = self.tab_content(&mut state) {
+				trace!("Tab {} has been static for {duration:?}", state.tab);
+			}
 			self.unpause(&mut state);
 			self.change_tab(&mut state, tab);
 		}
@@ -320,6 +333,25 @@ impl Browser {
 			false
 		}
 	}
+
+	fn tab_content(&self, state: &mut MutexGuard<BrowserState>) -> Option<Duration> {
+		self.eyes.see().map(|content| {
+			let now = Instant::now();
+			let tab = state.tab;
+
+			state
+				.content
+				.resize_with(self.last_tab() + 1, || ("".to_owned(), now));
+
+			trace!("Tab {tab} content: {content}");
+
+			if state.content[tab].0 != content {
+				state.content[tab] = (content.clone(), now);
+			}
+
+			now - state.content[tab].1
+		})
+	}
 }
 
 impl Default for BrowserState {
@@ -328,6 +360,7 @@ impl Default for BrowserState {
 			tab: Browser::FIRST_TAB,
 			changed: Instant::now(),
 			paused: false,
+			content: Vec::new(),
 		}
 	}
 }
@@ -408,6 +441,34 @@ impl Hands {
 			.send_keysequence(window, keys, DELAY_US)
 			.inspect_err(|_| self.window = None)?;
 		Ok(())
+	}
+}
+
+impl Default for Eyes {
+	fn default() -> Self {
+		Self {
+			monitors: Monitor::all().unwrap(),
+		}
+	}
+}
+
+impl Eyes {
+	pub fn see(&self) -> Option<String> {
+		self.monitors
+			.first()
+			.and_then(|monitor| match monitor.capture_image() {
+				Ok(image) => {
+					let mut hasher = Sha256::new();
+					hasher.update(image.as_raw());
+					let hash = hasher.finalize();
+					Some(format!("{:x}", hash))
+				}
+
+				Err(err) => {
+					error!("Unable to capture image: {err}");
+					None
+				}
+			})
 	}
 }
 
