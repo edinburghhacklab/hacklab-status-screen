@@ -151,6 +151,7 @@ impl Browser {
 			let tab = self.next_tab_id(&state);
 
 			debug!("Go to next tab");
+			self.unpause(&mut state);
 			self.change_tab(&mut state, tab);
 		}
 	}
