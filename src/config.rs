@@ -64,6 +64,12 @@ struct State {
 	autoscroll_pause: Duration,
 }
 
+#[derive(Debug)]
+pub struct Page {
+	pub url: String,
+	pub reload: Option<Duration>,
+}
+
 impl Config {
 	pub fn new(args: &CommandLineArgs) -> Arc<Self> {
 		let config_file = args.config_file.to_str().unwrap();
@@ -106,8 +112,15 @@ impl Config {
 		});
 	}
 
-	pub fn browser_urls(&self) -> Result<IndexMap<String, String>, Error> {
+	pub fn browser_urls(&self) -> Result<IndexMap<String, Page>, Error> {
 		let state = self.state.lock().unwrap();
+		let reload_section = state.data.get("reload").and_then(|section| {
+			section
+				.clone()
+				.into_table()
+				.inspect_err(|err| warn!("Invalid reload section in config: {err}"))
+				.ok()
+		});
 
 		Ok(state
 			.data
@@ -118,7 +131,24 @@ impl Config {
 			.clone()
 			.iter()
 			.filter_map(|(name, url)| match url.clone().into_string() {
-				Ok(url) => Some((name.clone(), url)),
+				Ok(url) => {
+					let reload = reload_section
+						.as_ref()
+						.and_then(|table| {
+							table.clone().get(name).and_then(|value| {
+								value
+									.clone()
+									.into_uint()
+									.inspect_err(|err| {
+										warn!("Invalid reload value for {name}: {err}")
+									})
+									.ok()
+							})
+						})
+						.map(Duration::from_secs);
+					Some((name.clone(), Page { url, reload }))
+				}
+
 				Err(err) => {
 					error!("Invalid url string for {name}: {err}");
 					None

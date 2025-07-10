@@ -31,12 +31,12 @@ use rumqttc::MqttOptions;
 use sha2::{Digest, Sha256};
 use xcap::Monitor;
 
-use crate::config::{CommandLineArgs, Config};
+use crate::config::{CommandLineArgs, Config, Page};
 
 #[derive(Debug)]
 pub struct Browser {
 	kiosk: bool,
-	urls: Vec<String>,
+	pages: Vec<Page>,
 	tabs: HashMap<String, usize>,
 	state: Mutex<BrowserState>,
 	sleep: Condvar,
@@ -51,7 +51,7 @@ struct BrowserState {
 	changed: Instant,
 	held: bool,
 	paused: bool,
-	content: Vec<(String, Instant)>,
+	content: Vec<(String, Option<Instant>)>,
 }
 
 #[derive(derive_more::Debug)]
@@ -79,13 +79,13 @@ impl Browser {
 	const FIRST_TAB: usize = 1;
 
 	pub fn new(args: &CommandLineArgs, config: Arc<Config>) -> Arc<Self> {
-		let mut open_urls = Vec::<String>::new();
+		let mut pages = Vec::<Page>::new();
 		let mut tabs = HashMap::new();
 
 		if let Ok(config_urls) = config.browser_urls() {
-			for (name, url) in config_urls {
+			for (name, page) in config_urls {
 				if tabs.insert(name.clone(), tabs.len() + 1).is_none() {
-					open_urls.push(url);
+					pages.push(page);
 				} else {
 					warn!("Duplicate url {name} ignored");
 				}
@@ -94,7 +94,7 @@ impl Browser {
 
 		Arc::new(Self {
 			kiosk: args.kiosk,
-			urls: open_urls,
+			pages,
 			tabs,
 			state: Mutex::new(BrowserState::default()),
 			sleep: Condvar::new(),
@@ -105,12 +105,14 @@ impl Browser {
 	}
 
 	pub fn run(self: &Arc<Browser>) {
+		let urls: Vec<&String> = self.pages.iter().map(|page| &page.url).collect();
+
 		let mut command = Command::new("chromium-browser");
 		if self.kiosk {
 			command.arg("--kiosk");
 		}
 		command.arg("--disable-web-security").arg("--temp-profile");
-		command.args(&self.urls);
+		command.args(urls);
 
 		let mut child = command.spawn().expect("Browser failed to start");
 		if self.kiosk {
@@ -164,8 +166,13 @@ impl Browser {
 			let tab = self.next_tab_id(&state);
 
 			debug!("Go to next tab (autoscroll)");
-			if let Some(duration) = self.tab_content(&mut state) {
+			if let Some((duration, reload)) = self.tab_content(&mut state) {
 				trace!("Tab {} has been static for {duration:?}", state.tab);
+
+				if reload {
+					debug!("Reload tab (auto)");
+					self.press("Ctrl+r");
+				}
 			}
 			self.unpause(&mut state);
 			self.change_tab(&mut state, tab);
@@ -275,6 +282,10 @@ impl Browser {
 		self.tabs.len()
 	}
 
+	fn tab_count(&self) -> usize {
+		self.tabs.len()
+	}
+
 	fn previous_tab_id(&self, state: &MutexGuard<BrowserState>) -> usize {
 		if state.tab == Self::FIRST_TAB {
 			self.last_tab()
@@ -355,22 +366,41 @@ impl Browser {
 		}
 	}
 
-	fn tab_content(&self, state: &mut MutexGuard<BrowserState>) -> Option<Duration> {
+	fn tab_content(&self, state: &mut MutexGuard<BrowserState>) -> Option<(Duration, bool)> {
 		self.eyes.see().map(|content| {
 			let now = Instant::now();
 			let tab = state.tab;
 
 			state
 				.content
-				.resize_with(self.last_tab() + 1, || ("".to_owned(), now));
+				.resize_with(self.tab_count(), || ("".to_owned(), None));
+
+			let tab_state = &mut state.content[tab - Browser::FIRST_TAB];
 
 			trace!("Tab {tab} content: {content}");
 
-			if state.content[tab].0 != content {
-				state.content[tab] = (content.clone(), now);
+			if tab_state.0 != content || tab_state.1.is_none() {
+				*tab_state = (content, Some(now));
 			}
 
-			now - state.content[tab].1
+			// If the tab hasn't changed for the configured reload
+			// period, reload the tab and unset the time
+			tab_state
+				.1
+				.map(|last_change| now - last_change)
+				.and_then(|duration| {
+					self.pages[tab - Browser::FIRST_TAB].reload.map(|reload| {
+						let reload = if duration >= reload {
+							tab_state.1 = None;
+							true
+						} else {
+							false
+						};
+
+						(duration, reload)
+					})
+				})
+				.unwrap_or_default()
 		})
 	}
 }

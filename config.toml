@@ -26,6 +26,14 @@ delay = 20
 hold = 60
 pause = 900
 
+[reload]
+buses = 300
+timers = 60
+trains = 300
+xkcd_dark = 604800
+xkcd_light = 604800
+voron = 120
+
 [tabs]
 0 = "buses"
 1 = "trains"
