@@ -189,10 +189,12 @@ impl Browser {
 			Some(tab) => {
 				let mut state = self.state.lock().unwrap();
 
-				self.unpause(&mut state);
+				if self.change_tab(&mut state, *tab) {
+					self.unpause(&mut state);
 
-				if self.change_tab(&mut state, *tab) && sync {
-					thread::sleep(time::Duration::from_millis(100));
+					if sync {
+						thread::sleep(time::Duration::from_millis(100));
+					}
 				}
 			}
 			None => {
