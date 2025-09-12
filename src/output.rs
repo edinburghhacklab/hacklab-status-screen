@@ -19,7 +19,10 @@ use core::time;
 use std::{
 	collections::HashMap,
 	process::Command,
-	sync::{Arc, Condvar, Mutex, MutexGuard},
+	sync::{
+		Arc, Condvar, Mutex, MutexGuard,
+		atomic::{AtomicBool, Ordering},
+	},
 	thread,
 	time::{Duration, Instant},
 };
@@ -43,6 +46,7 @@ pub struct Browser {
 	config: Arc<Config>,
 	hands: Mutex<Hands>,
 	eyes: Eyes,
+	display_sleeping: AtomicBool,
 }
 
 #[derive(Debug)]
@@ -101,6 +105,7 @@ impl Browser {
 			config,
 			hands: Mutex::new(Hands::new(args.xdotool, args.no_search)),
 			eyes: Eyes::default(),
+			display_sleeping: AtomicBool::new(false),
 		})
 	}
 
@@ -402,6 +407,29 @@ impl Browser {
 				})
 				.unwrap_or_default()
 		})
+	}
+
+	pub fn display_sleep(&self) {
+		Command::new("sh")
+			.arg("-c")
+			.arg("tvservice -o")
+			.output()
+			.unwrap();
+		self.display_sleeping.store(true, Ordering::Relaxed);
+	}
+
+	pub fn display_resume(&self) {
+		if !self.display_sleeping.load(Ordering::Relaxed) {
+			return;
+		}
+
+		// this will also restart this program, so don't block
+		Command::new("sh")
+			.arg("-c")
+			.arg("tvservice -p && sleep 1 && systemctl restart --no-block --user x")
+			.output()
+			.unwrap();
+		self.display_sleeping.store(false, Ordering::Relaxed);
 	}
 }
 

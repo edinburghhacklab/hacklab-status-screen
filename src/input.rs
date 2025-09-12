@@ -17,16 +17,18 @@
 
 use core::time;
 use enum_dispatch::enum_dispatch;
+use rumqttc::{Event, Incoming, MqttOptions, QoS};
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use std::{fmt, thread};
 
 use anyhow::Error;
 use evdev::{EventType, InputEvent};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 
 use crate::config::Config;
 use crate::output::{Browser, TimeSinceLast};
@@ -43,6 +45,7 @@ pub struct Input {
 	main: Arc<Device>,
 	tabs: Option<Arc<Device>>,
 	timers: Option<Arc<Device>>,
+	_idle: Arc<Idle>,
 }
 
 #[derive(Debug)]
@@ -94,6 +97,12 @@ struct Konami {
 	run: Arc<Mutex<Arc<Browser>>>,
 }
 
+#[derive(derive_more::Debug)]
+struct Idle {
+	#[debug("{:?}", _client.is_some())]
+	_client: Option<rumqttc::Client>,
+}
+
 fn execute(run: Arc<Mutex<Arc<Browser>>>, command: &str) {
 	let command = command.to_owned();
 
@@ -123,6 +132,7 @@ impl Input {
 		let run = Arc::new(Mutex::new(browser.clone()));
 
 		Ok(Self {
+			_idle: Idle::new(&config, browser.clone()),
 			main: Device::new(
 				"main",
 				PathBuf::from(config.keyboard_device("main")?),
@@ -416,4 +426,57 @@ impl Handler for Timers {
 	}
 
 	fn dpad_press(&self, _dir: Direction) {}
+}
+
+impl Idle {
+	pub fn new(config: &Config, browser: Arc<Browser>) -> Arc<Self> {
+		let client = match config.mqtt_hostname() {
+			Ok(hostname) => {
+				let mut options = MqttOptions::new("status-screen-idle", hostname, 1883);
+
+				options.set_keep_alive(Duration::from_secs(60));
+
+				let (client, mut connection) = rumqttc::Client::new(options, 10);
+				client
+					.subscribe("sensor/global/presence".to_string(), QoS::ExactlyOnce)
+					.unwrap();
+
+				thread::spawn(move || {
+					for notification in connection.iter() {
+						trace!("idle MQTT received: {notification:?}");
+
+						if notification.is_err() {
+							thread::sleep(Duration::from_secs(1));
+							continue;
+						}
+
+						let Event::Incoming(Incoming::Publish(msg)) = notification.unwrap() else {
+							continue;
+						};
+
+						if msg.topic.as_str() != "sensor/global/presence" {
+							continue;
+						}
+
+						let payload = String::from_utf8(msg.payload.to_vec()).unwrap();
+						if payload == "empty" {
+							info!("sending display to sleep");
+							browser.display_sleep();
+						} else {
+							info!("resuming display");
+							browser.display_resume();
+						}
+					}
+				});
+
+				Some(client)
+			}
+			Err(err) => {
+				warn!("MQTT not configured: {err}");
+				None
+			}
+		};
+
+		Arc::new(Self { _client: client })
+	}
 }
