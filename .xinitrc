@@ -16,4 +16,4 @@ sleep 1
 sleep 1
 
 # Edit config.toml
-cargo run -r -- -k -vv
+cargo run -r -- -k -vvvvvv
