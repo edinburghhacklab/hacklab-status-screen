@@ -11,12 +11,12 @@ def index():
 
 @app.route('/api/stop/<int:stop_id>')
 def proxy_stop(stop_id):
-    res = requests.get(f"https://lothianapi.co.uk/departureBoards/website?stops={stop_id}")
+    res = requests.get(f"https://tfe-opendata.com/api/v1/live_bus_times/{stop_id}")
     return res.json()
 
 @app.route('/api/colors')
 def proxy_colors():
-    res = requests.get(f"https://lothianapi.com/routes/all")
-    return res.json()
+    with open("/home/pi/bus-timetables/routes.json", "rb") as f:
+        return f.read()
 
 app.run()

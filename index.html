@@ -57,42 +57,42 @@ const app = Vue.createApp({
     return {
       stops: [
         {
-          id: 6200240020,
+          id: 36236562,
           name: "Bernard Terrace, NW",
           services: [],
           lastUpdated: 0,
         },
         {
-          id: 6200208550,
+          id: 36234798,
           name: "Bernard Terrace, SE (1)",
           services: [],
           lastUpdated: 0,
         },
         {
-          id: 6200208580,
+          id: 36234823,
           name: "Bernard Terrace, SE (2)",
           services: [],
           lastUpdated: 0,
         },
         {
-          id: 6200243440,
+          id: 36238272,
           name: "Buccleuch Terrace, NW",
           services: [],
           lastUpdated: 0,
         },
         {
-          id: 6200206460,
+          id: 36238273,
           name: "Buccleuch Terrace, SE",
           services: [],
           lastUpdated: 0,
         },
       ],
       stopIndices: {
-        6200240020: 0,
-        6200208550: 1,
-        6200208580: 2,
-        6200243440: 3,
-        6200206460: 4,
+        36236562: 0,
+        36234798: 1,
+        36234823: 2,
+        36238272: 3,
+        36238273: 4,
       },
       time: "",
       timestamp: 0,
@@ -163,15 +163,15 @@ async function loadStop (stop) {
     return services[service].destinations[destination].times;
   }
 
-  for (let service of json.services) {
-    for (let departure of service.departures) {
-      let busList = mkService(service.service_name, departure.destination);
+  for (let route of json) {
+    for (let departure of route.departures) {
+      let busList = mkService(departure.routeName, departure.destination);
       let departureString = "ERR";
-      if (departure.minutes > 60) {
-        let departureTime = new Date(Date.now() + departure.minutes * 60 * 1000);
-        departureString = departureTime.toLocaleTimeString().slice(0, -3)
-      } else if (departure.minutes > 0) {
-        departureString = departure.minutes.toString() + "m";
+      let minutes = Math.floor((departure.departureTimeUnix * 1000 - Date.now()) / 1000 / 60);
+      if (minutes > 60) {
+        departureString = new Date(departure.departureTimeUnix * 1000).toLocaleTimeString().slice(0, -3);
+      } else if (minutes > 0) {
+        departureString = minutes.toString() + "m";
       } else {
         departureString = "DUE";
       }
