@@ -4,6 +4,18 @@ import requests
 
 app = Flask(__name__)
 
+session = requests.Session()
+session.headers.update({
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:143.0) Gecko/20100101 Firefox/143.0",
+    "Origin": "https://www.lothianbuses.com",
+    "Referer": "https://www.lothianbuses.com/",
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "Priority": "u=0",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "cross-site",
+})
+
 @app.route('/')
 def index():
     with open("/home/pi/bus-timetables/index.html", "rb") as f:
@@ -11,12 +23,12 @@ def index():
 
 @app.route('/api/stop/<int:stop_id>')
 def proxy_stop(stop_id):
-    res = requests.get(f"https://lothianapi.co.uk/departureBoards/website?stops={stop_id}")
+    res = session.get(f"https://lothianapi.co.uk/departureBoards/website?stops={stop_id}", timeout=5)
     return res.json()
 
 @app.route('/api/colors')
 def proxy_colors():
-    res = requests.get(f"https://lothianapi.com/routes/all")
+    res = session.get(f"https://lothianapi.com/routes/all", timeout=5)
     return res.json()
 
 app.run()
