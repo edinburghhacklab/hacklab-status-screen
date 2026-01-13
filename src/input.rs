@@ -444,15 +444,17 @@ impl What {
         match what.mqtt_topic.as_str() {
             "clip/play" => {
                 let path = format!("{}/{}", CLIPS_DIR, what.mqtt_msg);
+                info!("[CLIP] Playing from {}", path);
                 if std::fs::exists(&what.mqtt_msg).unwrap() {
                     let md = std::fs::metadata(&what.mqtt_msg).unwrap();
                     if md.is_file() {
+                        info!("[CLIP] Found file at {}, playing!", path);
                         execute(run, format!("DISPLAY=:0 mpv {}", path).as_str());
                     }
                 }
             }
             _ => {
-                error!("Unrecognized clip mqtt topic: {}", &what.mqtt_topic);
+                error!("[CLIP] Unrecognized clip mqtt topic: {}", &what.mqtt_topic);
             }
         }
         return what;
@@ -489,6 +491,7 @@ impl Idle {
 						};
 
                         if msg.topic.as_str().starts_with("clip/") {
+                            info!("[CLIP] Attempting to play clip from MQTT...");
                             What::new(run.clone(), String::from(msg.topic.as_str()), String::from_utf8(msg.payload.to_vec()).unwrap());
                             continue;
                         }
