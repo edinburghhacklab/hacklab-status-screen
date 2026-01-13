@@ -129,23 +129,6 @@ fn execute(run: Arc<Mutex<Arc<Browser>>>, command: &str) {
 	});
 }
 
-fn execute_now(command: &str) {
-	let command = command.to_owned();
-
-	//run.lock().unwrap().user_activity();
-    info!("Preparing to execute {}", command);
-	thread::spawn(move || {
-		/* Do run multiple commands concurrently mwahahahahaha */
-		//let run = run.lock().unwrap();
-
-		info!("Execute NOW: {command}");
-
-		/* Wait for command to finish */
-		if let Err(err) = Command::new("sh").arg("-c").arg(&command).output() {
-			error!("Error executing command {command:?}: {err}");
-		}
-	});
-}
 
 impl Input {
 	pub fn new(
@@ -156,7 +139,7 @@ impl Input {
 		let run = Arc::new(Mutex::new(browser.clone()));
 
 		Ok(Self {
-			_idle: Idle::new(&config, browser.clone()),
+			_idle: Idle::new(&config, browser.clone(), run.clone()),
 			main: Device::new(
 				"main",
 				PathBuf::from(config.keyboard_device("main")?),
@@ -452,20 +435,20 @@ impl Handler for Timers {
 	fn dpad_press(&self, _dir: Direction) {}
 }
 
-const CLIPS_DIR : &str = "$HOME/clips";
+const CLIPS_DIR : &str = "~/clips";
 
 impl Clip {
-    pub fn show(mqtt_topic: String, mqtt_msg: String) {
+    pub fn show(run: Arc<Mutex<Arc<Browser>>>, mqtt_topic: String, mqtt_msg: String) {
         match mqtt_topic.as_str() {
             "clip/play" => {
                 let path = format!("{}/{}", CLIPS_DIR, mqtt_msg);
-                info!("[CLIP] Playing from {}", path);
+                info!("[CLIP] Searching for {}...", path);
                 if std::fs::exists(&mqtt_msg).unwrap() {
                     let md = std::fs::metadata(&mqtt_msg).unwrap();
                     if md.is_file() {
                         info!("[CLIP] Found file at {}, playing!", path);
                         // Execute as soon as given
-                        execute_now(format!("DISPLAY=:0 mpv {}", path).as_str());
+                        execute(run, format!("DISPLAY=:0 mpv {}", path).as_str());
                     }
                 }
             }
@@ -477,7 +460,7 @@ impl Clip {
 }
 
 impl Idle {
-	pub fn new(config: &Config, browser: Arc<Browser>) -> Arc<Self> {
+	pub fn new(config: &Config, browser: Arc<Browser>, run: Arc<Mutex<Arc<Browser>>>) -> Arc<Self> {
 		let client = match config.mqtt_hostname() {
 			Ok(hostname) => {
 				let mut options = MqttOptions::new("status-screen-idle", hostname, 1883);
@@ -507,7 +490,7 @@ impl Idle {
 
                         if msg.topic.as_str().starts_with("clip/") {
                             info!("[CLIP] Attempting to play clip from MQTT...");
-                            Clip::show(String::from(msg.topic.as_str()), String::from_utf8(msg.payload.to_vec()).unwrap());
+                            Clip::show(run.clone(), String::from(msg.topic.as_str()), String::from_utf8(msg.payload.to_vec()).unwrap());
                             continue;
                         }
 						if msg.topic.as_str() != "sensor/global/presence" {
