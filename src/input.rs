@@ -443,14 +443,15 @@ impl Clip {
             "clip/play" => {
                 let path = format!("{}/{}", CLIPS_DIR, mqtt_msg);
                 info!("[CLIP] Searching for {}...", path);
-                if std::fs::exists(&mqtt_msg).unwrap() {
-                    let md = std::fs::metadata(&mqtt_msg).unwrap();
-                    if md.is_file() {
-                        info!("[CLIP] Found file at {}, playing!", path);
-                        // Execute as soon as given
-                        execute(run, format!("DISPLAY=:0 mpv {}", path).as_str());
-                    }
-                }
+                execute(run, format!("DISPLAY=:0 mpv {}", path).as_str());
+                // if std::fs::exists(&mqtt_msg).unwrap() {
+                //     let md = std::fs::metadata(&mqtt_msg).unwrap();
+                //     if md.is_file() {
+                //         info!("[CLIP] Found file at {}, playing!", path);
+                //         // Execute as soon as given
+
+                //     }
+                // }
             }
             _ => {
                 error!("[CLIP] Unrecognized clip mqtt topic: {}", &mqtt_topic);
