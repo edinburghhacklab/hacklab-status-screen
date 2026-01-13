@@ -133,7 +133,7 @@ fn execute_now(command: &str) {
 	let command = command.to_owned();
 
 	//run.lock().unwrap().user_activity();
-
+    info!("Preparing to execute {}", command);
 	thread::spawn(move || {
 		/* Do run multiple commands concurrently mwahahahahaha */
 		//let run = run.lock().unwrap();
