@@ -99,17 +99,16 @@ struct Konami {
 
 #[derive(Debug)]
 struct What {
-    _vid_dir: String,
-    _playing: bool,
-    _mqtt_topic: String,
-    _mqtt_msg: String
+    //vid_dir: String,
+    //playing: bool,
+    mqtt_topic: String,
+    mqtt_msg: String
 }
 
 #[derive(derive_more::Debug)]
 struct Idle {
 	#[debug("{:?}", _client.is_some())]
 	_client: Option<rumqttc::Client>,
-    _what: Option<What>
 }
 
 fn execute(run: Arc<Mutex<Arc<Browser>>>, command: &str) {
@@ -141,7 +140,7 @@ impl Input {
 		let run = Arc::new(Mutex::new(browser.clone()));
 
 		Ok(Self {
-			_idle: Idle::new(&config, browser.clone()),
+			_idle: Idle::new(&config, browser.clone(), run.clone()),
 			main: Device::new(
 				"main",
 				PathBuf::from(config.keyboard_device("main")?),
@@ -440,25 +439,28 @@ impl Handler for Timers {
 const CLIPS_DIR : &str = "$HOME/clips";
 
 impl What {
-    pub fn new(config: &Config, browser: Arc<Browser>, mqtt_topic: String, mqtt_msg: String) -> Arc<Self> {
-        _mqtt_topic = mqtt_topic;
-        _mqtt_msg = mqtt_msg;
-        match _mqtt_topic.as_str() {
+    pub fn new(run: Arc<Mutex<Arc<Browser>>>, mqtt_topic: String, mqtt_msg: String) -> Arc<Self> {
+        let what = Arc::new(Self{mqtt_topic, mqtt_msg});
+        match what.mqtt_topic.as_str() {
             "clip/play" => {
-                let path = format!("{}/{}", CLIPS_DIR, mqtt_msg);
-                if std::fs::exists(mqtt_msg) {
-                    let md = std::fs::metadata(mqtt_msg)?;
+                let path = format!("{}/{}", CLIPS_DIR, what.mqtt_msg);
+                if std::fs::exists(&what.mqtt_msg).unwrap() {
+                    let md = std::fs::metadata(&what.mqtt_msg).unwrap();
                     if md.is_file() {
-                        execute(browser, format!("DISPLAY=:0 mpv {}", path, mqtt_msg));
+                        execute(run, format!("DISPLAY=:0 mpv {}", path).as_str());
                     }
                 }
             }
+            _ => {
+                error!("Unrecognized clip mqtt topic: {}", &what.mqtt_topic);
+            }
         }
+        return what;
     }
 }
 
 impl Idle {
-	pub fn new(config: &Config, browser: Arc<Browser>) -> Arc<Self> {
+	pub fn new(config: &Config, browser: Arc<Browser>, run: Arc<Mutex<Arc<Browser>>>) -> Arc<Self> {
 		let client = match config.mqtt_hostname() {
 			Ok(hostname) => {
 				let mut options = MqttOptions::new("status-screen-idle", hostname, 1883);
@@ -470,7 +472,7 @@ impl Idle {
 					.subscribe("sensor/global/presence".to_string(), QoS::ExactlyOnce)
 					.unwrap();
                 client
-                    .subcscribe("clip/#".to_string(), QoS::AtLeastOnce)
+                    .subscribe("clip/#".to_string(), QoS::AtLeastOnce)
                     .unwrap();
 
 				thread::spawn(move || {
@@ -487,7 +489,7 @@ impl Idle {
 						};
 
                         if msg.topic.as_str().starts_with("clip/") {
-                            _what = What::new(config, browser, msg.topic.as_str(), std::str::from_utf8(msg.payload));
+                            What::new(run.clone(), String::from(msg.topic.as_str()), String::from_utf8(msg.payload.to_vec()).unwrap());
                             continue;
                         }
 						if msg.topic.as_str() != "sensor/global/presence" {
