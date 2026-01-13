@@ -97,10 +97,19 @@ struct Konami {
 	run: Arc<Mutex<Arc<Browser>>>,
 }
 
+#[derive(Debug)]
+struct What {
+    _vid_dir: String,
+    _playing: bool,
+    _mqtt_topic: String,
+    _mqtt_msg: String
+}
+
 #[derive(derive_more::Debug)]
 struct Idle {
 	#[debug("{:?}", _client.is_some())]
 	_client: Option<rumqttc::Client>,
+    _what: Option<What>
 }
 
 fn execute(run: Arc<Mutex<Arc<Browser>>>, command: &str) {
@@ -428,6 +437,26 @@ impl Handler for Timers {
 	fn dpad_press(&self, _dir: Direction) {}
 }
 
+const CLIPS_DIR : &str = "$HOME/clips";
+
+impl What {
+    pub fn new(config: &Config, browser: Arc<Browser>, mqtt_topic: String, mqtt_msg: String) -> Arc<Self> {
+        _mqtt_topic = mqtt_topic;
+        _mqtt_msg = mqtt_msg;
+        match _mqtt_topic.as_str() {
+            "clip/play" => {
+                let path = format!("{}/{}", CLIPS_DIR, mqtt_msg);
+                if std::fs::exists(mqtt_msg) {
+                    let md = std::fs::metadata(mqtt_msg)?;
+                    if md.is_file() {
+                        execute(browser, format!("DISPLAY=:0 mpv {}", path, mqtt_msg));
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl Idle {
 	pub fn new(config: &Config, browser: Arc<Browser>) -> Arc<Self> {
 		let client = match config.mqtt_hostname() {
@@ -440,6 +469,9 @@ impl Idle {
 				client
 					.subscribe("sensor/global/presence".to_string(), QoS::ExactlyOnce)
 					.unwrap();
+                client
+                    .subcscribe("clip/#".to_string(), QoS::AtLeastOnce)
+                    .unwrap();
 
 				thread::spawn(move || {
 					for notification in connection.iter() {
@@ -454,6 +486,10 @@ impl Idle {
 							continue;
 						};
 
+                        if msg.topic.as_str().starts_with("clip/") {
+                            _what = What::new(config, browser, msg.topic.as_str(), std::str::from_utf8(msg.payload));
+                            continue;
+                        }
 						if msg.topic.as_str() != "sensor/global/presence" {
 							continue;
 						}
