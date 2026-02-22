@@ -52,6 +52,7 @@ voron = 120
 0 = "Nix Mentioned"
 1 = "Rust mention"
 2 = "Emacs mention"
+3 = "Factorio mentioned"
 
 5 = "Nerd snipe"
 6 = "Force-fem"
