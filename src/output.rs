@@ -18,6 +18,8 @@
 use core::time;
 use std::{
 	collections::HashMap,
+	fs::File,
+	io::Write,
 	process::Command,
 	sync::{
 		Arc, Condvar, Mutex, MutexGuard,
@@ -538,6 +540,11 @@ impl Eyes {
 			.first()
 			.and_then(|monitor| match monitor.capture_image() {
 				Ok(image) => {
+					if let Ok(mut file) = File::create("/dev/shm/capture.raw") {
+						if let Err(err) = file.write_all(image.as_raw()) {
+							error!("Unable to save capture: {err}");
+						}
+					}
 					let mut hasher = Sha256::new();
 					hasher.update(image.as_raw());
 					let hash = hasher.finalize();
